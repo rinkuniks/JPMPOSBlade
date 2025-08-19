@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import relanto.jpn.nrf.websocket.UnifiedWebSocketService
+import relanto.jpn.nrf.websocket.WebSocketSessionManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -17,5 +18,13 @@ object WebSocketModule {
         @ApplicationContext context: Context
     ): UnifiedWebSocketService {
         return UnifiedWebSocketService(context)
+    }
+    
+    @Provides
+    fun provideWebSocketSessionManager(
+        @ApplicationContext context: Context,
+        unifiedWebSocketService: UnifiedWebSocketService
+    ): WebSocketSessionManager {
+        return WebSocketSessionManager(context, unifiedWebSocketService)
     }
 }

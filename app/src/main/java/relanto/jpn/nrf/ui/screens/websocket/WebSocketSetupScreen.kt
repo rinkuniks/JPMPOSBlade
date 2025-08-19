@@ -29,15 +29,6 @@ fun WebSocketSetupScreen(navController: NavController) {
     val serverIp by viewModel.serverIp.collectAsStateWithLifecycle()
     val localIpAddress by viewModel.localIpAddress.collectAsStateWithLifecycle()
     
-    LaunchedEffect(isConnected) {
-        if (isConnected) {
-            // Navigate to home screen once connected
-            navController.navigate("home") {
-                popUpTo("websocket_setup") { inclusive = true }
-            }
-        }
-    }
-    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,33 +50,7 @@ fun WebSocketSetupScreen(navController: NavController) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Local IP Address Display
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Device Information",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text("Local IP: ${localIpAddress ?: "Unknown"}")
-                    }
-                }
-            }
-            
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+
             
             // Mode Selection Section
             item {
@@ -134,6 +99,42 @@ fun WebSocketSetupScreen(navController: NavController) {
                                 text = "Enable Client Mode",
                                 style = MaterialTheme.typography.bodyLarge
                             )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Disconnect All Button
+                        Button(
+                            onClick = { viewModel.onEvent(WebSocketSetupEvent.DisconnectAll) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Disconnect All & Clear Session")
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Go to Home Button (always visible)
+                        Button(
+                            onClick = { 
+                                navController.navigate("home") {
+                                    popUpTo("websocket_setup") { inclusive = true }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Icon(Icons.Default.Home, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Go to Home")
                         }
                     }
                 }
@@ -245,6 +246,73 @@ fun WebSocketSetupScreen(navController: NavController) {
                                     
                                     Spacer(modifier = Modifier.height(16.dp))
                                     
+                                    // Chat Box (show when server has clients)
+                                    if (state.connectedClients > 0) {
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                            )
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(16.dp)
+                                            ) {
+                                                Text(
+                                                    text = "💬 Server Chat",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                
+                                                Text(
+                                                    text = "Send message to all connected clients",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                                
+                                                Spacer(modifier = Modifier.height(16.dp))
+                                                
+                                                // Message Input and Send Button
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = state.messageText,
+                                                        onValueChange = { viewModel.onEvent(WebSocketSetupEvent.UpdateMessageText(it)) },
+                                                        label = { Text("Type your message...") },
+                                                        placeholder = { Text("Hello from Server!") },
+                                                        modifier = Modifier.weight(1f),
+                                                        singleLine = true,
+                                                        maxLines = 3
+                                                    )
+                                                    
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    
+                                                    Button(
+                                                        onClick = { 
+                                                            if (state.messageText.isNotBlank()) {
+                                                                viewModel.onEvent(WebSocketSetupEvent.SendMessage)
+                                                            }
+                                                        },
+                                                        enabled = state.messageText.isNotBlank(),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = MaterialTheme.colorScheme.primary,
+                                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                                        )
+                                                    ) {
+                                                        Icon(Icons.Default.Send, contentDescription = "Send")
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text("Send")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                    }
+                                    
                                     Button(
                                         onClick = { viewModel.onEvent(WebSocketSetupEvent.StopServer) },
                                         modifier = Modifier.fillMaxWidth(),
@@ -256,6 +324,26 @@ fun WebSocketSetupScreen(navController: NavController) {
                                         Icon(Icons.Default.Close, contentDescription = null)
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("Stop Server")
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    // Go to Home Button
+                                    Button(
+                                        onClick = { 
+                                            navController.navigate("home") {
+                                                popUpTo("websocket_setup") { inclusive = true }
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Home, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Go to Home")
                                     }
                                 }
                                 is UnifiedWebSocketService.ServerState.Starting -> {
@@ -477,7 +565,7 @@ fun WebSocketSetupScreen(navController: NavController) {
                                     onClick = { viewModel.onEvent(WebSocketSetupEvent.Connect) },
                                     modifier = Modifier.weight(1f),
                                     enabled = state.serverIp.isNotBlank() && 
-                                             clientState !is UnifiedWebSocketService.ClientState.Connecting
+                                             !state.isConnecting && !state.isClientConnected
                                 ) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = null)
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -487,7 +575,7 @@ fun WebSocketSetupScreen(navController: NavController) {
                                 Button(
                                     onClick = { viewModel.onEvent(WebSocketSetupEvent.Disconnect) },
                                     modifier = Modifier.weight(1f),
-                                    enabled = isConnected,
+                                    enabled = state.isClientConnected,
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.errorContainer,
                                         contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -523,7 +611,7 @@ fun WebSocketSetupScreen(navController: NavController) {
                 }
                 
                 // Connection Info (only show if client mode is enabled and connected)
-                if (isConnected) {
+                if (state.isClientConnected) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth()
@@ -542,6 +630,95 @@ fun WebSocketSetupScreen(navController: NavController) {
                                 Text("Server IP: ${state.serverIp}")
                                 Text("Server URL: ${state.serverUrl}")
                                 Text("Status: Connected")
+                            }
+                        }
+                    }
+                    
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                    
+                    // Client Chat Box (show when client is connected)
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = "💬 Client Chat",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = "Send message to server",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                // Message Input and Send Button
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = state.messageText,
+                                        onValueChange = { viewModel.onEvent(WebSocketSetupEvent.UpdateMessageText(it)) },
+                                        label = { Text("Type your message...") },
+                                        placeholder = { Text("Hello from Client!") },
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        maxLines = 3
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    
+                                    Button(
+                                        onClick = { 
+                                            if (state.messageText.isNotBlank()) {
+                                                viewModel.onEvent(WebSocketSetupEvent.SendMessage)
+                                            }
+                                        },
+                                        enabled = state.messageText.isNotBlank(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Send, contentDescription = "Send")
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Send")
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                // Go to Home Button
+                                Button(
+                                    onClick = { 
+                                        navController.navigate("home") {
+                                            popUpTo("websocket_setup") { inclusive = true }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Home, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Go to Home")
+                                }
                             }
                         }
                     }
