@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import relanto.jpn.nrf.ui.components.PermissionStatusComponent
 import relanto.jpn.nrf.websocket.UnifiedWebSocketService
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -585,6 +586,21 @@ fun WebSocketSetupScreen(navController: NavController) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Disconnect")
                                 }
+                            }
+                            
+                            // Test connection button for debugging
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = { 
+                                    // Test with a hardcoded localhost URL
+                                    viewModel.testConnection("ws://192.168.1.100:8080")
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !state.isConnecting && !state.isClientConnected
+                            ) {
+                                Icon(Icons.Default.Build, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Test Connection (Debug)")
                             }
                             
                             if (clientState is UnifiedWebSocketService.ClientState.Error) {

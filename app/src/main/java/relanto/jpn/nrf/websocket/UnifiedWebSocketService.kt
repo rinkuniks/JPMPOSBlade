@@ -164,10 +164,15 @@ class UnifiedWebSocketService @Inject constructor(
     // ==================== CLIENT FUNCTIONALITY ====================
     
     fun connectToServer(url: String? = null) {
+        Log.d(TAG, "connectToServer called with url: '$url'")
+        
         val targetUrl = url ?: getLocalServerUrl()
+        Log.d(TAG, "Target URL resolved to: '$targetUrl'")
+        
         if (targetUrl == null) {
-            Log.e(TAG, "No server URL available")
-            _clientState.value = ClientState.Error("No server URL available")
+            val errorMsg = "No server URL available"
+            Log.e(TAG, errorMsg)
+            _clientState.value = ClientState.Error(errorMsg)
             return
         }
         
@@ -176,6 +181,8 @@ class UnifiedWebSocketService @Inject constructor(
             Log.d(TAG, "Already connected to server")
             return
         }
+        
+        Log.d(TAG, "Starting connection process to: $targetUrl")
         
         scope.launch {
             try {
@@ -195,14 +202,17 @@ class UnifiedWebSocketService @Inject constructor(
                     .url(targetUrl)
                     .build()
                 
+                Log.d(TAG, "Creating WebSocket with request: ${request.url}")
                 webSocketClient = client.newWebSocket(request, createWebSocketListener())
+                Log.d(TAG, "WebSocket created successfully, waiting for connection callbacks")
                 
                 // The connection result will be handled by the WebSocketListener callbacks
                 // No need for artificial delays
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to connect", e)
-                _clientState.value = ClientState.Error(e.message ?: "Connection failed")
+                val errorMsg = "Failed to connect: ${e.message}"
+                Log.e(TAG, errorMsg, e)
+                _clientState.value = ClientState.Error(errorMsg)
             }
         }
     }
@@ -443,6 +453,11 @@ class UnifiedWebSocketService @Inject constructor(
                 Log.d(TAG, "Response code: ${response.code}, message: ${response.message}")
                 _clientState.value = ClientState.Connected
                 Log.d(TAG, "Client state updated to: Connected")
+                
+                // Show toast for successful connection
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "✅ Connected to server", Toast.LENGTH_SHORT).show()
+                }
             }
             
             override fun onMessage(webSocket: WebSocket, text: String) {
@@ -455,6 +470,11 @@ class UnifiedWebSocketService @Inject constructor(
                 Log.d(TAG, "WebSocket client closed: $code - $reason")
                 _clientState.value = ClientState.Disconnected
                 Log.d(TAG, "Client state updated to: Disconnected")
+                
+                // Show toast for disconnection
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "❌ Disconnected from server", Toast.LENGTH_SHORT).show()
+                }
             }
             
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
@@ -470,8 +490,14 @@ class UnifiedWebSocketService @Inject constructor(
                     else -> "Connection failed: ${t.message ?: t.javaClass.simpleName}"
                 }
                 
+                Log.e(TAG, "Setting client state to Error: $errorMessage")
                 _clientState.value = ClientState.Error(errorMessage)
                 Log.d(TAG, "Client state updated to: Error - $errorMessage")
+                
+                // Show toast for connection failure
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "❌ $errorMessage", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

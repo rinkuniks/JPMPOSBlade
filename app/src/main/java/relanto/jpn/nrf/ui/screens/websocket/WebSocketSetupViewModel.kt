@@ -215,6 +215,26 @@ class WebSocketSetupViewModel @Inject constructor(
         }
     }
     
+    /**
+     * Test connection with a specific URL (for debugging)
+     */
+    fun testConnection(testUrl: String) {
+        Log.d("WebSocketSetupViewModel", "Testing connection with URL: $testUrl")
+        launchCoroutine {
+            setState { copy(isConnecting = true) }
+            try {
+                unifiedWebSocketService.connectToServer(testUrl)
+                Log.d("WebSocketSetupViewModel", "Test connection initiated")
+            } catch (e: Exception) {
+                val errorMsg = "Test connection failed: ${e.message}"
+                Log.e("WebSocketSetupViewModel", errorMsg, e)
+                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+            } finally {
+                setState { copy(isConnecting = false) }
+            }
+        }
+    }
+    
     // Restore previous session state
     private fun restoreSessionState() {
         val sessionState = sessionManager.loadSessionState()
@@ -257,13 +277,19 @@ class WebSocketSetupViewModel @Inject constructor(
     }
     
     private fun updateServerIp(ip: String) {
+        Log.d("WebSocketSetupViewModel", "updateServerIp called with IP: '$ip'")
         val formattedUrl = formatServerUrl(ip)
+        Log.d("WebSocketSetupViewModel", "Formatted URL: '$formattedUrl'")
+        
         setState { 
             copy(
                 serverIp = ip,
                 serverUrl = formattedUrl
             )
         }
+        
+        Log.d("WebSocketSetupViewModel", "State updated - serverIp: '${uiState.value.serverIp}', serverUrl: '${uiState.value.serverUrl}'")
+        
         // Save the IP address
         saveServerIp(ip)
         // Save session state
@@ -288,13 +314,21 @@ class WebSocketSetupViewModel @Inject constructor(
             setState { copy(isConnecting = true) }
             try {
                 val url = uiState.value.serverUrl
+                Log.d("WebSocketSetupViewModel", "Attempting to connect to URL: '$url'")
+                
                 if (url.isNotBlank()) {
+                    Log.d("WebSocketSetupViewModel", "Calling unifiedWebSocketService.connectToServer with URL: $url")
                     unifiedWebSocketService.connectToServer(url)
+                    Log.d("WebSocketSetupViewModel", "connectToServer called successfully")
                 } else {
-                    Log.e("WebSocketSetupViewModel", "No server URL available")
+                    val errorMsg = "No server URL available. Server IP: '${uiState.value.serverIp}', Server URL: '$url'"
+                    Log.e("WebSocketSetupViewModel", errorMsg)
+                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                Log.e("WebSocketSetupViewModel", "Connection failed", e)
+                val errorMsg = "Connection failed: ${e.message}"
+                Log.e("WebSocketSetupViewModel", errorMsg, e)
+                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
             } finally {
                 setState { copy(isConnecting = false) }
             }

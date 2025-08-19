@@ -39,8 +39,4 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
-    // Expose WebSocket service states
-    val connectionState = unifiedWebSocketService.clientState
-    val isConnected = unifiedWebSocketService.isClientConnected()
 }
